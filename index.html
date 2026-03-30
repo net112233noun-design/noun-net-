@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>NOUN NET · Neural Network Defense</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #020617;
+            color: #e2e8f0;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .animated-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: radial-gradient(ellipse at 30% 40%, #0a0f2a, #020617);
+        }
+        
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: floatOrb 20s infinite alternate;
+            z-index: -1;
+        }
+        
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: #2affb6;
+            top: -100px;
+            right: -100px;
+            animation-duration: 25s;
+        }
+        
+        .orb-2 {
+            width: 600px;
+            height: 600px;
+            background: #3b82f6;
+            bottom: -150px;
+            left: -150px;
+            animation-duration: 30s;
+            animation-delay: -5s;
+        }
+        
+        .orb-3 {
+            width: 300px;
+            height: 300px;
+            background: #a855f7;
+            top: 50%;
+            left: 50%;
+            animation-duration: 18s;
+            animation-delay: -2s;
+        }
+        
+        @keyframes floatOrb {
+            0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+            100% { transform: translate(80px, 60px) scale(1.2); opacity: 0.5; }
+        }
+        
+        .network-particles {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .particle-dot {
+            position: absolute;
+            background: #2affb6;
+            border-radius: 50%;
+            opacity: 0;
+            animation: particleFlow 8s infinite linear;
+        }
+        
+        @keyframes particleFlow {
+            0% { opacity: 0; transform: translateY(100vh) scale(0); }
+            10% { opacity: 0.6; }
+            80% { opacity: 0.4; }
+            100% { opacity: 0; transform: translateY(-20vh) scale(1); }
+        }
+        
+        .glow-line-top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #2affb6, #3b82f6, transparent);
+            z-index: 10;
+            animation: scanLine 3s infinite;
+        }
+        
+        @keyframes scanLine {
+            0% { opacity: 0.3; transform: translateX(-100%); }
+            50% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0.3; transform: translateX(100%); }
+        }
+        
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem 3rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .admin-toggle {
+            position: fixed;
+            bottom: 28px;
+            left: 28px;
+            background: rgba(6, 18, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(42, 255, 182, 0.5);
+            border-radius: 60px;
+            padding: 0.7rem 1.5rem;
+            cursor: pointer;
+            z-index: 120;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #b3ffe6;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 0 15px rgba(42, 255, 182, 0.2);
+            animation: pulseBorder 2s infinite;
+        }
+        
+        @keyframes pulseBorder {
+            0%, 100% { border-color: rgba(42, 255, 182, 0.5); box-shadow: 0 0 5px rgba(42, 255, 182, 0.3); }
+            50% { border-color: rgba(42, 255, 182, 1); box-shadow: 0 0 20px rgba(42, 255, 182, 0.6); }
+        }
+        
+        .admin-toggle:hover {
+            transform: scale(1.05) translateY(-3px);
+            background: #0f2a3a;
+            border-color: #2affb6;
+        }
+        
+        .admin-panel {
+            position: fixed;
+            top: 0;
+            right: -480px;
+            width: 440px;
+            height: 100vh;
+            background: rgba(2, 10, 26, 0.98);
+            backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(42, 255, 182, 0.5);
+            z-index: 1000;
+            transition: right 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.2);
+            padding: 2rem 1.8rem;
+            overflow-y: auto;
+            box-shadow: -10px 0 50px rgba(0, 0, 0, 0.6);
+        }
+        
+        .admin-panel.open { right: 0; }
+        
+        .profile-hero {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2.8rem;
+            align-items: center;
+            background: rgba(8, 20, 38, 0.6);
+            backdrop-filter: blur(16px);
+            border-radius: 3rem;
+            padding: 2rem 2.8rem;
+            margin-bottom: 2.5rem;
+            border: 1px solid rgba(42, 255, 182, 0.25);
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s;
+            animation: fadeSlideUp 0.8s ease-out;
+        }
+        
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .profile-hero:hover {
+            border-color: rgba(42, 255, 182, 0.5);
+            transform: translateY(-5px);
+        }
+        
+        .avatar-wrapper {
+            position: relative;
+            transition: transform 0.3s;
+        }
+        
+        .avatar-wrapper:hover {
+            transform: rotate(5deg) scale(1.02);
+        }
+        
+        .main-avatar {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #2affb6;
+            box-shadow: 0 0 25px rgba(42, 255, 182, 0.4);
+            transition: all 0.3s;
+        }
+        
+        .display-name {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #9effe3, #4affb6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.02em;
+            animation: glowText 3s infinite alternate;
+        }
+        
+        @keyframes glowText {
+            0% { text-shadow: 0 0 0px rgba(42, 255, 182, 0); }
+            100% { text-shadow: 0 0 15px rgba(42, 255, 182, 0.3); }
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.8rem;
+        }
+        
+        .stat-card-new {
+            background: linear-gradient(135deg, rgba(12, 28, 48, 0.7), rgba(6, 16, 30, 0.7));
+            backdrop-filter: blur(10px);
+            border-radius: 1.8rem;
+            padding: 1.3rem 1rem;
+            text-align: center;
+            border: 1px solid rgba(42, 255, 182, 0.25);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card-new::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(42, 255, 182, 0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .stat-card-new:hover::before {
+            left: 100%;
+        }
+        
+        .stat-card-new:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: #2affb6;
+            box-shadow: 0 15px 30px -10px rgba(42, 255, 182, 0.3);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #2affb6;
+            line-height: 1;
+            transition: all 0.3s;
+        }
+        
+        .skill-tag {
+            background: rgba(42, 255, 182, 0.1);
+            padding: 0.45rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(42, 255, 182, 0.3);
+            transition: all 0.25s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            animation: fadeInScale 0.3s ease;
+        }
+        
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .skill-tag:hover {
+            background: rgba(42, 255, 182, 0.25);
+            transform: translateY(-3px) scale(1.05);
+            border-color: #2affb6;
+        }
+        
+        .gallery-item {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 1.8rem;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            border: 1px solid rgba(42, 255, 182, 0.2);
+            animation: fadeSlideUp 0.5s ease backwards;
+            position: relative;
+        }
+        
+        .gallery-item:hover {
+            transform: translateY(-12px) scale(1.02);
+            border-color: #2affb6;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .gallery-img-box {
+            aspect-ratio: 1/1;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .gallery-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        .gallery-item:hover .gallery-img-box img {
+            transform: scale(1.08);
+        }
+        
+        .gallery-caption {
+            padding: 0.8rem;
+            text-align: center;
+            background: rgba(2, 8, 20, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        
+        .caption-edit-input {
+            background: rgba(42, 255, 182, 0.1);
+            border: 1px solid rgba(42, 255, 182, 0.4);
+            border-radius: 40px;
+            padding: 6px 12px;
+            width: 100%;
+            color: #e2f0ff;
+            text-align: center;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        
+        .caption-edit-input:focus {
+            outline: none;
+            border-color: #2affb6;
+            box-shadow: 0 0 8px rgba(42, 255, 182, 0.3);
+        }
+        
+        .gallery-delete-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #ff6b6b;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #ff9e9e;
+            transition: all 0.2s;
+            z-index: 10;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        
+        .gallery-item:hover .gallery-delete-btn {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .gallery-delete-btn:hover {
+            background: #ff4d4d;
+            color: white;
+            border-color: white;
+        }
+        
+        .gallery-add-card {
+            background: rgba(42, 255, 182, 0.08);
+            border: 2px dashed rgba(42, 255, 182, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 280px;
+        }
+        
+        .gallery-add-card:hover {
+            background: rgba(42, 255, 182, 0.2);
+            border-color: #2affb6;
+            transform: translateY(-5px);
+        }
+        
+        .terminal-widget {
+            background: #03070f;
+            border-radius: 1.2rem;
+            border: 1px solid #2affb6;
+            margin: 2rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            transition: box-shadow 0.3s;
+            animation: fadeSlideUp 0.6s ease;
+        }
+        
+        .terminal-widget:hover {
+            box-shadow: 0 0 25px rgba(42, 255, 182, 0.2);
+        }
+        
+        .cursor-blink {
+            display: inline-block;
+            width: 2px;
+            height: 18px;
+            background: #2affb6;
+            margin-left: 4px;
+            animation: blinkCursor 1s step-end infinite;
+            vertical-align: middle;
+        }
+        
+        @keyframes blinkCursor {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        .social-icon {
+            background: rgba(42, 255, 182, 0.1);
+            width: 52px;
+            height: 52px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 60px;
+            color: #2affb6;
+            font-size: 1.5rem;
+            transition: all 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+            border: 1px solid rgba(42, 255, 182, 0.3);
+            text-decoration: none;
+        }
+        
+        .social-icon:hover {
+            background: #2affb6;
+            color: #020617;
+            transform: translateY(-8px) rotate(360deg);
+            box-shadow: 0 10px 25px rgba(42, 255, 182, 0.4);
+        }
+        
+        .contact-btn-glow {
+            background: linear-gradient(135deg, #1f8f6e, #0d6efd);
+            border: none;
+            padding: 0.85rem 2.2rem;
+            border-radius: 60px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: pulseButton 2s infinite;
+        }
+        
+        @keyframes pulseButton {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(42, 255, 182, 0.4); }
+            50% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(42, 255, 182, 0); }
+        }
+        
+        .contact-btn-glow:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(13, 110, 253, 0.4);
+        }
+        
+        .tl-item {
+            animation: slideInRight 0.5s ease backwards;
+        }
+        
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .modal-glass-content {
+            animation: modalPop 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+        }
+        
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.8) translateY(30px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        .admin-input, input, textarea {
+            transition: all 0.2s;
+        }
+        
+        .admin-input:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #2affb6;
+            box-shadow: 0 0 12px rgba(42, 255, 182, 0.3);
+            transform: scale(1.01);
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .profile-hero { flex-direction: column; text-align: center; }
+            .admin-panel { width: 100%; right: -100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="animated-bg"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div class="network-particles" id="particleContainer"></div>
+<div class="glow-line-top"></div>
+
+<div class="admin-toggle" id="adminToggle">
+    <i class="fas fa-shield-haltered"></i> ADMIN PANEL
+</div>
+
+<div class="admin-panel" id="adminPanel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h3 style="color:#2affb6;"><i class="fas fa-crown"></i> Neural Control</h3>
+        <button class="close-admin" id="closeAdminBtn" style="background: none; border: none; font-size: 1.8rem; color: #ff8080; cursor: pointer;">✕</button>
+    </div>
+    <div style="margin-bottom: 1.5rem;">
+        <label>Full Name</label>
+        <input type="text" id="adminName" class="admin-input" style="width:100%; margin-top:5px; padding:10px; border-radius:20px; background:#111c2a; border:1px solid #2affb6; color:white;">
+        <label>Title</label>
+        <input type="text" id="adminTitle" style="width:100%; margin-top:5px; padding:10px; border-radius:20px; background:#111c2a; border:1px solid #2affb6; color:white;">
+        <label>Location</label>
+        <input type="text" id="adminLocation" style="width:100%; margin-top:5px; padding:10px; border-radius:20px; background:#111c2a; border:1px solid #2affb6; color:white;">
+        <label>Bio</label>
+        <textarea id="adminBio" rows="2" style="width:100%; margin-top:5px; padding:10px; border-radius:20px; background:#111c2a; border:1px solid #2affb6; color:white;"></textarea>
+        <button id="forceSaveBtn" style="margin-top:12px; background:#2affb6; color:#010101; border:none; padding:10px; width:100%; border-radius:40px; font-weight:600; transition:0.2s;">💾 SAVE PROFILE</button>
+    </div>
+    <div><button id="resetDataBtn" style="background:#ff5c5c; border:none; padding:10px; width:100%; border-radius:40px; font-weight:600;">⟳ RESET ALL DATA</button></div>
+    <div><button id="exportJsonBtn" style="background:#1e2a3a; margin-top:12px; border:1px solid #2affb6; padding:10px; width:100%; border-radius:40px;">📎 EXPORT JSON</button></div>
+</div>
+
+<div class="container">
+    <div class="profile-hero" data-aos="fade-up" data-aos-duration="800">
+        <div class="avatar-wrapper">
+            <img id="profileAvatar" src="https://ui-avatars.com/api/?background=2affb6&color=020617&bold=true&size=160&name=NOUN+NET&length=2&fontsize=70" class="main-avatar" alt="NOUN NET">
+            <div style="margin-top: 12px;"><input type="file" id="avatarUploadInput" accept="image/*" style="display:none;">
+            <button class="upload-btn-sm" id="triggerAvatarUpload" style="background: rgba(42,255,182,0.15); border:1px solid #2affb6; padding:0.4rem 1rem; border-radius:40px; font-size:0.75rem; cursor:pointer;"><i class="fas fa-camera"></i> Update</button></div>
+        </div>
+        <div>
+            <h1 class="display-name" id="displayNameText">NOUN NET</h1>
+            <div class="badge-list" id="badgeArea" style="display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.8rem 0;"></div>
+            <div style="color:#9ab3d5; margin: 0.5rem 0;" id="locationDisplay"><i class="fas fa-map-pin"></i> <span>Global Security Nexus</span></div>
+            <p id="bioParagraph" style="max-width: 560px;">Neural network security architect & threat hunter. Zero-trust advocate, SNCF core contributor.</p>
+        </div>
+    </div>
+
+    <div class="stats-row" id="statsContainer"></div>
+
+    <div class="skills-wrapper" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.8rem; margin-bottom: 2.8rem;">
+        <div class="skill-card" style="background: rgba(8, 18, 32, 0.55); backdrop-filter: blur(8px); border-radius: 2rem; padding: 1.5rem; border: 1px solid rgba(42, 255, 182, 0.2);">
+            <div class="skill-title" style="display: flex; justify-content: space-between;"><span><i class="fas fa-shield-virus"></i> Core Expertise</span> <i class="fas fa-plus-circle" style="cursor:pointer; color:#2affb6; transition:0.2s;" id="addCoreSkillBtn"></i></div>
+            <div class="skill-tags" id="coreSkillsPanel" style="display: flex; flex-wrap: wrap; gap: 0.7rem;"></div>
+        </div>
+        <div class="skill-card" style="background: rgba(8, 18, 32, 0.55); backdrop-filter: blur(8px); border-radius: 2rem; padding: 1.5rem; border: 1px solid rgba(42, 255, 182, 0.2);">
+            <div class="skill-title" style="display: flex; justify-content: space-between;"><span><i class="fas fa-microchip"></i> Technical Arsenal</span> <i class="fas fa-plus-circle" style="cursor:pointer; color:#2affb6;" id="addTechSkillBtn"></i></div>
+            <div class="skill-tags" id="techSkillsPanel"></div>
+        </div>
+    </div>
+
+    <div class="gallery-modern" data-aos="fade-up">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+            <h2><i class="fas fa-camera-retro"></i> Neural Network Lab · Personal Gallery</h2>
+            <button id="addPictureBtn" style="background: #2affb6; color: #020617; border: none; border-radius: 60px; padding: 0.6rem 1.6rem; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 0 12px rgba(42,255,182,0.4);"><i class="fas fa-plus-circle"></i> Add Your Photo</button>
+        </div>
+        <div class="gallery-grid-mod" id="galleryGridModern" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.8rem;"></div>
+    </div>
+
+    <div class="timeline-modern" style="background: rgba(8, 18, 32, 0.5); border-radius: 2rem; padding: 1.5rem; margin: 2rem 0;" data-aos="fade-up">
+        <h2><i class="fas fa-certificate"></i> Elite Certifications</h2>
+        <div class="cert-grid-mod" id="certModernGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem;"></div>
+        <div style="margin-top: 2rem;">
+            <h2><i class="fas fa-chronometer"></i> Career Trajectory</h2>
+            <div class="timeline-vertical" id="timelineModern" style="position: relative; padding-left: 1.2rem;"></div>
+        </div>
+    </div>
+
+    <div class="terminal-widget" data-aos="zoom-in">
+        <div class="term-header" style="background: #0e1824; padding: 0.6rem 1rem; border-radius: 1.2rem 1.2rem 0 0; display: flex; gap: 8px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#ff5f56;"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#ffbd2e;"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#2affb6;"></div>
+            <span style="margin-left: auto;">noun@netsec:~</span>
+        </div>
+        <div class="term-body" style="padding: 1.5rem; color: #aaffdd; font-family: monospace;">
+            <div><span style="color:#2affb6;">$</span> whoami</div>
+            <div>NOUN NET — Neural Network Defense Architect</div>
+            <div><span style="color:#2affb6;">$</span> ./deploy --ai-defense</div>
+            <div>> Active Defense | SNCF v3 | Predictive Threat Intel</div>
+            <div id="cursorLine"><span style="color:#2affb6;">$</span> <span id="typingSpan"></span><span class="cursor-blink"></span></div>
+        </div>
+    </div>
+
+    <div class="social-section" style="text-align:center; margin-top: 1rem;">
+        <div class="social-links-mod" style="display: flex; justify-content: center; gap: 1.2rem; margin: 1rem 0;">
+            <a href="#" class="social-icon" id="linkedinIcon"><i class="fab fa-linkedin-in"></i></a>
+            <a href="#" class="social-icon" id="githubIcon"><i class="fab fa-github"></i></a>
+            <a href="#" class="social-icon" id="twitterIcon"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-icon" id="htbIcon"><i class="fas fa-cube"></i></a>
+        </div>
+        <button class="contact-btn-glow" id="openContactModalBtn"><i class="fas fa-lock"></i> Encrypted Contact</button>
+    </div>
+    <footer style="text-align: center; padding-top: 2rem; color: #6f85a5;">© NOUN NET — Neural Network Security | AI-Driven Defense</footer>
+</div>
+
+<div id="contactModalWindow" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(16px); align-items:center; justify-content:center; z-index:2000;">
+    <div class="modal-glass-content" style="background:#0b1422; max-width:450px; width:90%; border-radius:2rem; padding:2rem; border:1px solid #2affb6;">
+        <span style="float:right; font-size:1.8rem; cursor:pointer; color:#ff8080;" id="closeModalCross">&times;</span>
+        <h3 style="color:#2affb6;"><i class="fas fa-envelope"></i> Secure Quantum Msg</h3>
+        <form id="secureMsgForm">
+            <input type="text" id="msgName" placeholder="Your name" required style="width:100%; margin:12px 0; padding:12px; background:#1a2538; border:1px solid #2affb6; border-radius:40px; color:white;">
+            <input type="email" id="msgEmail" placeholder="Email" required style="width:100%; margin:12px 0; padding:12px; background:#1a2538; border:1px solid #2affb6; border-radius:40px; color:white;">
+            <textarea id="msgContent" rows="3" placeholder="Encrypted message..." style="width:100%; margin:12px 0; padding:12px; background:#1a2538; border:1px solid #2affb6; border-radius:20px; color:white;"></textarea>
+            <button type="submit" style="background:#2affb6; border:none; padding:12px; width:100%; border-radius:40px; font-weight:bold; color:#020617;">Send Securely</button>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+    AOS.init({ duration: 700, once: false, mirror: false });
+    
+    function createParticles() {
+        const container = document.getElementById('particleContainer');
+        for (let i = 0; i < 80; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle-dot';
+            const size = Math.random() * 4 + 1;
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDuration = Math.random() * 12 + 4 + 's';
+            p.style.animationDelay = Math.random() * 8 + 's';
+            container.appendChild(p);
+        }
+    }
+    createParticles();
+    
+    let portfolio = {
+        profile: { name: "NOUN NET", title: "Neural Network Security Architect", location: "🌐 Global / Neural Grid", bio: "AI-security specialist, SNCF framework designer, zero-trust evangelist. 12+ years securing critical infrastructure with neural defense systems.", badges: ["SNCF", "SPPE", "SISE", "SEHE", "AI SECURITY"] },
+        stats: { vulns: "480+", incidents: "99.9%", networks: "220+", certs: "15" },
+        coreSkills: ["Neural Defense Architecture", "Zero Trust AI", "Threat Intelligence Automation", "Quantum-Resistant Crypto", "SNCF Framework v3", "Adversarial ML"],
+        techSkills: ["Python / TensorFlow", "AWS/Azure AI Security", "Kubernetes Hardening", "SIEM + SOAR", "Wireshark / Ghidra", "Rust / Assembly"],
+        certs: [
+            { name: "SNCF - Security Neural Certified Framework", icon: "fas fa-brain" },
+            { name: "SPPE - Professional Penetration Expert (AI)", icon: "fas fa-robot" },
+            { name: "SISE - Infrastructure Security Engineering", icon: "fas fa-server" },
+            { name: "SEHE - Ethical Hacking Expert + AI", icon: "fas fa-user-secret" }
+        ],
+        timeline: [
+            { year: "2023–Present", title: "Director of Neural Security", desc: "Leading AI-defense research, SNCF v3 implementation" },
+            { year: "2019–2023", title: "Senior Security Architect", desc: "Global zero-trust transformation, threat hunting automation" },
+            { year: "2015–2019", title: "Network Defense Lead", desc: "Critical infrastructure protection, red team operations" }
+        ]
+    };
+    
+    let galleryItems = [
+        { img: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=400&fit=crop", caption: "Neural SOC Control" },
+        { img: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=400&fit=crop", caption: "AI Threat Lab" },
+        { img: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&h=400&fit=crop", caption: "Quantum Encryption Core" },
+        { img: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&h=400&fit=crop", caption: "Zero Trust Workshop" }
+    ];
+    
+    function saveAll() { 
+        localStorage.setItem('nounnet_data', JSON.stringify(portfolio)); 
+        localStorage.setItem('nounnet_gallery', JSON.stringify(galleryItems)); 
+    }
+    
+    function loadAll() {
+        const saved = localStorage.getItem('nounnet_data');
+        if(saved) portfolio = JSON.parse(saved);
+        const savedGal = localStorage.getItem('nounnet_gallery');
+        if(savedGal) galleryItems = JSON.parse(savedGal);
+        renderUI();
+    }
+    
+    function deleteGalleryItem(index) {
+        Swal.fire({ 
+            title: 'Delete this photo?', 
+            text: 'This action cannot be undone', 
+            icon: 'warning', 
+            showCancelButton: true, 
+            confirmButtonColor: '#d33', 
+            confirmButtonText: 'Yes, delete it!',
+            background:'#0a1120' 
+        }).then(res => {
+            if(res.isConfirmed) { 
+                galleryItems.splice(index, 1); 
+                saveAll(); 
+                renderUI(); 
+                Swal.fire({title:'Deleted!', text:'Photo removed', icon:'success', toast:true, timer:1500, showConfirmButton:false}); 
+            }
+        });
+    }
+    
+    function updateCaption(index, newCaption) {
+        if(galleryItems[index]) {
+            galleryItems[index].caption = newCaption;
+            saveAll();
+        }
+    }
+    
+    function triggerImageUpload() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if(file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    galleryItems.push({ img: ev.target.result, caption: "My Snapshot" });
+                    saveAll();
+                    renderUI();
+                    Swal.fire({title:'Photo Added!', icon:'success', toast:true, timer:1500, showConfirmButton:false});
+                };
+                reader.readAsDataURL(file);
+            } else { 
+                Swal.fire({title:'Invalid file', text:'Please select an image', icon:'error', toast:true}); 
+            }
+        };
+        input.click();
+    }
+    
+    function renderUI() {
+        // Profile section
+        document.getElementById('displayNameText').innerText = portfolio.profile.name;
+        document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${portfolio.profile.location}`;
+        document.getElementById('bioParagraph').innerText = portfolio.profile.bio;
+        document.getElementById('badgeArea').innerHTML = portfolio.profile.badges.map(b => `<span class="badge-item" style="background:rgba(42,255,182,0.12); border:1px solid #2affb6; padding:0.25rem 1rem; border-radius:40px;"><i class="fas fa-shield-alt"></i> ${b}</span>`).join('');
+        
+        // Stats
+        const statsContainer = document.getElementById('statsContainer');
+        statsContainer.innerHTML = `
+            <div class="stat-card-new" data-stat="vulns"><div class="stat-number">${portfolio.stats.vulns}</div><div class="stat-label">VULNERABILITIES FOUND</div></div>
+            <div class="stat-card-new" data-stat="incidents"><div class="stat-number">${portfolio.stats.incidents}</div><div class="stat-label">RESOLUTION RATE</div></div>
+            <div class="stat-card-new" data-stat="networks"><div class="stat-number">${portfolio.stats.networks}</div><div class="stat-label">NETWORKS SECURED</div></div>
+            <div class="stat-card-new" data-stat="certs"><div class="stat-number">${portfolio.stats.certs}</div><div class="stat-label">CERTIFICATIONS</div></div>
+        `;
+        document.querySelectorAll('.stat-card-new').forEach(card => {
+            card.addEventListener('click', () => editStat(card.getAttribute('data-stat')));
+        });
+        
+        // Skills
+        document.getElementById('coreSkillsPanel').innerHTML = portfolio.coreSkills.map((sk, idx) => `<span class="skill-tag"><i class="fas fa-dice-d6"></i> ${sk} <i class="fas fa-trash-alt" style="margin-left:8px; color:#ff7b7b; cursor:pointer;" data-core-idx="${idx}"></i></span>`).join('');
+        document.getElementById('techSkillsPanel').innerHTML = portfolio.techSkills.map((sk, idx) => `<span class="skill-tag"><i class="fas fa-microchip"></i> ${sk} <i class="fas fa-trash-alt" style="margin-left:8px; color:#ff7b7b; cursor:pointer;" data-tech-idx="${idx}"></i></span>`).join('');
+        
+        document.querySelectorAll('[data-core-idx]').forEach(el => el.addEventListener('click', (e) => { 
+            e.stopPropagation();
+            let idx = parseInt(el.getAttribute('data-core-idx')); 
+            portfolio.coreSkills.splice(idx,1); 
+            saveAll(); 
+            renderUI(); 
+            Swal.fire({title:'Removed', icon:'success', toast:true, timer:1500, showConfirmButton:false}); 
+        }));
+        document.querySelectorAll('[data-tech-idx]').forEach(el => el.addEventListener('click', (e) => { 
+            e.stopPropagation();
+            let idx = parseInt(el.getAttribute('data-tech-idx')); 
+            portfolio.techSkills.splice(idx,1); 
+            saveAll(); 
+            renderUI(); 
+            Swal.fire({title:'Removed', icon:'success', toast:true, timer:1500, showConfirmButton:false}); 
+        }));
+        
+        // Certifications
+        document.getElementById('certModernGrid').innerHTML = portfolio.certs.map(c => `<div class="cert-card-mod" style="background:rgba(42,255,182,0.05); border-radius:1.2rem; padding:0.8rem; display:flex; align-items:center; gap:1rem;"><i class="${c.icon} fa-2x" style="color:#2affb6;"></i><div><strong>${c.name}</strong></div></div>`).join('');
+        
+        // Timeline
+        const timelineDiv = document.getElementById('timelineModern');
+        timelineDiv.innerHTML = portfolio.timeline.map((t, idx) => `<div class="tl-item" style="margin-bottom:1.4rem; padding-left:1.2rem; position:relative;"><div style="font-weight:bold; color:#2affb6;">${t.year}</div><div style="font-weight:600;">${t.title}</div><div style="font-size:0.8rem;">${t.desc}</div></div>`).join('');
+        
+        // GALLERY - FIXED with proper delete and edit functionality
+        const galleryGrid = document.getElementById('galleryGridModern');
+        galleryGrid.innerHTML = '';
+        
+        galleryItems.forEach((item, idx) => {
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            galleryItem.style.setProperty('--delay', idx);
+            
+            galleryItem.innerHTML = `
+                <div class="gallery-delete-btn" data-delete-idx="${idx}"><i class="fas fa-trash-alt"></i></div>
+                <div class="gallery-img-box"><img src="${item.img}" alt="gallery image"></div>
+                <div class="gallery-caption">
+                    <input type="text" value="${escapeHtml(item.caption)}" data-caption-idx="${idx}" class="caption-edit-input" placeholder="Enter caption">
+                </div>
+            `;
+            
+            galleryGrid.appendChild(galleryItem);
+        });
+        
+        // Add the "Add Photo" card
+        const addCard = document.createElement('div');
+        addCard.className = 'gallery-item gallery-add-card';
+        addCard.innerHTML = `<div style="text-align:center; padding:1.5rem;"><i class="fas fa-cloud-upload-alt fa-3x" style="color:#2affb6;"></i><p style="margin-top:12px;">Upload New Image</p><p style="font-size:0.75rem; margin-top:8px;">Click to add your photo</p></div>`;
+        addCard.style.cursor = 'pointer';
+        addCard.onclick = () => triggerImageUpload();
+        galleryGrid.appendChild(addCard);
+        
+        // Attach delete event listeners
+        document.querySelectorAll('[data-delete-idx]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.getAttribute('data-delete-idx'));
+                deleteGalleryItem(idx);
+            });
+        });
+        
+        // Attach caption edit event listeners
+        document.querySelectorAll('[data-caption-idx]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const idx = parseInt(input.getAttribute('data-caption-idx'));
+                updateCaption(idx, input.value);
+            });
+        });
+        
+        // Admin panel values
+        document.getElementById('adminName').value = portfolio.profile.name;
+        document.getElementById('adminTitle').value = portfolio.profile.title;
+        document.getElementById('adminLocation').value = portfolio.profile.location;
+        document.getElementById('adminBio').value = portfolio.profile.bio;
+    }
+    
+    function escapeHtml(str) { 
+        if(!str) return '';
+        return str.replace(/[&<>]/g, function(m){ 
+            if(m==='&') return '&amp;'; 
+            if(m==='<') return '&lt;'; 
+            if(m==='>') return '&gt;'; 
+            return m;
+        }); 
+    }
+    
+    function editStat(statKey) {
+        Swal.fire({ 
+            title: `Edit ${statKey.toUpperCase()}`, 
+            input: 'text', 
+            inputValue: portfolio.stats[statKey], 
+            background: '#0a1120', 
+            color: '#fff', 
+            confirmButtonColor: '#2affb6', 
+            showCancelButton: true 
+        }).then(res => { 
+            if(res.isConfirmed && res.value) { 
+                portfolio.stats[statKey] = res.value; 
+                saveAll(); 
+                renderUI(); 
+                Swal.fire({title:'Updated', icon:'success', toast:true, timer:1500, showConfirmButton:false}); 
+            } 
+        });
+    }
+    
+    document.getElementById('addCoreSkillBtn').onclick = () => { 
+        Swal.fire({title:'New Core Skill', input:'text', background:'#0a1120', confirmButtonColor:'#2affb6'}).then(r => { 
+            if(r.value) { 
+                portfolio.coreSkills.push(r.value); 
+                saveAll(); 
+                renderUI(); 
+                Swal.fire({icon:'success', title:'Added', toast:true, timer:1500, showConfirmButton:false}); 
+            } 
+        }); 
+    };
+    
+    document.getElementById('addTechSkillBtn').onclick = () => { 
+        Swal.fire({title:'New Technical Skill', input:'text', background:'#0a1120', confirmButtonColor:'#2affb6'}).then(r => { 
+            if(r.value) { 
+                portfolio.techSkills.push(r.value); 
+                saveAll(); 
+                renderUI(); 
+                Swal.fire({icon:'success', title:'Added', toast:true, timer:1500, showConfirmButton:false}); 
+            } 
+        }); 
+    };
+    
+    document.getElementById('addPictureBtn').onclick = () => triggerImageUpload();
+    
+    const avatarInput = document.getElementById('avatarUploadInput');
+    document.getElementById('triggerAvatarUpload').onclick = () => avatarInput.click();
+    avatarInput.onchange = (e) => { 
+        let file = e.target.files[0]; 
+        if(file) { 
+            let reader = new FileReader(); 
+            reader.onload = ev => { 
+                document.getElementById('profileAvatar').src = ev.target.result; 
+                localStorage.setItem('nounnet_avatar', ev.target.result); 
+                Swal.fire({title:'Avatar Updated!', icon:'success', toast:true, timer:1500, showConfirmButton:false}); 
+            }; 
+            reader.readAsDataURL(file); 
+        } 
+    };
+    
+    const savedAvatar = localStorage.getItem('nounnet_avatar'); 
+    if(savedAvatar) document.getElementById('profileAvatar').src = savedAvatar;
+    
+    document.getElementById('adminToggle').onclick = () => document.getElementById('adminPanel').classList.toggle('open');
+    document.getElementById('closeAdminBtn').onclick = () => document.getElementById('adminPanel').classList.remove('open');
+    document.getElementById('forceSaveBtn').onclick = () => { 
+        portfolio.profile.name = document.getElementById('adminName').value; 
+        portfolio.profile.title = document.getElementById('adminTitle').value; 
+        portfolio.profile.location = document.getElementById('adminLocation').value; 
+        portfolio.profile.bio = document.getElementById('adminBio').value; 
+        saveAll(); 
+        renderUI(); 
+        Swal.fire({title:'Profile Saved', icon:'success', toast:true, timer:1500, showConfirmButton:false}); 
+    };
+    
+    document.getElementById('resetDataBtn').onclick = () => { 
+        Swal.fire({title:'Reset All Data?', text:'This action is irreversible', icon:'warning', confirmButtonColor:'#ff5c5c', showCancelButton:true, background:'#0a1120'}).then(r => { 
+            if(r.isConfirmed) { 
+                localStorage.clear(); 
+                location.reload(); 
+            } 
+        }); 
+    };
+    
+    document.getElementById('exportJsonBtn').onclick = () => { 
+        const dataStr = JSON.stringify({portfolio,galleryItems}); 
+        const blob = new Blob([dataStr],{type:'application/json'}); 
+        const a=document.createElement('a'); 
+        a.href=URL.createObjectURL(blob); 
+        a.download='nounnet_backup.json'; 
+        a.click(); 
+        Swal.fire({title:'Exported', icon:'success', toast:true, timer:1500, showConfirmButton:false}); 
+    };
+    
+    const modal = document.getElementById('contactModalWindow');
+    document.getElementById('openContactModalBtn').onclick = () => modal.style.display = 'flex';
+    document.getElementById('closeModalCross').onclick = () => modal.style.display = 'none';
+    document.getElementById('secureMsgForm').onsubmit = (e) => { 
+        e.preventDefault(); 
+        Swal.fire({title:'📡 Message Sent', text:'Encrypted transmission successful', icon:'success', background:'#0a1120', confirmButtonColor:'#2affb6'}); 
+        modal.style.display='none'; 
+        e.target.reset(); 
+    };
+    
+    document.getElementById('linkedinIcon').onclick = (e) => { e.preventDefault(); Swal.fire({title:'Redirecting', text:'LinkedIn Profile', icon:'info', toast:true}); setTimeout(()=>window.open('https://linkedin.com/in/nounnet','_blank'),600); };
+    document.getElementById('githubIcon').onclick = (e) => { e.preventDefault(); Swal.fire({title:'GitHub', text:'Opening repository', toast:true}); setTimeout(()=>window.open('https://github.com/nounnet','_blank'),600); };
+    document.getElementById('twitterIcon').onclick = (e) => { e.preventDefault(); Swal.fire({title:'X Profile', toast:true}); setTimeout(()=>window.open('https://twitter.com/nounnet','_blank'),600); };
+    document.getElementById('htbIcon').onclick = (e) => { e.preventDefault(); Swal.fire({title:'Hack The Box', text:'Profile loading', toast:true}); setTimeout(()=>window.open('https://www.hackthebox.com','_blank'),600); };
+    
+    let terminalCmd = "nmap -sV --script neural-threat localhost";
+    let terminalIdx = 0;
+    function typeTerminal() { 
+        if(terminalIdx < terminalCmd.length) { 
+            document.getElementById('typingSpan').innerHTML += terminalCmd.charAt(terminalIdx); 
+            terminalIdx++; 
+            setTimeout(typeTerminal, 60); 
+        } else { 
+            document.getElementById('cursorLine').innerHTML = '<span style="color:#2affb6;">$</span> <span style="color:#8effd6;">✔️ Neural defense active | 0 threats detected</span>'; 
+        } 
+    }
+    setTimeout(typeTerminal, 1000);
+    
+    loadAll();
+</script>
+</body>
+</html>
